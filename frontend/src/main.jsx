@@ -4,7 +4,8 @@ import {marked} from 'marked';
 import DOMPurify from 'dompurify';
 import './styles.css';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const configuredApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API = `${configuredApiUrl.replace(/\/+$/, '').replace(/\/api$/, '')}/api`;
 
 function App() {
   const [session, setSession] = useState(null), [sessions, setSessions] = useState([]), [input, setInput] = useState(''), [provider, setProvider] = useState('ollama'), [status, setStatus] = useState(''), [sources, setSources] = useState([]), [artifact, setArtifact] = useState(null), [sending, setSending] = useState(false);
