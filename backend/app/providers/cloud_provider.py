@@ -1,6 +1,5 @@
-import json
-import httpx
 from collections.abc import AsyncIterator
+import anthropic
 from .base import LLMProvider
 from ..config import settings
 
@@ -9,22 +8,20 @@ class CloudProvider(LLMProvider):
     async def stream(self, prompt: str) -> AsyncIterator[str]:
         if not settings.anthropic_api_key:
             raise RuntimeError("ANTHROPIC_API_KEY is not configured")
-        headers = {"x-api-key": settings.anthropic_api_key, "anthropic-version": "2023-06-01"}
-        payload = {"model": settings.anthropic_model, "max_tokens": 1800, "stream": True,
-                   "messages": [{"role": "user", "content": prompt}]}
         try:
-            async with httpx.AsyncClient(timeout=httpx.Timeout(120, connect=10)) as client:
-                async with client.stream("POST", "https://api.anthropic.com/v1/messages", headers=headers, json=payload) as response:
-                    response.raise_for_status()
-                    async for line in response.aiter_lines():
-                        if line.startswith("data: "):
-                            data = json.loads(line[6:])
-                            if data.get("type") == "content_block_delta":
-                                yield data["delta"].get("text", "")
-        except httpx.TimeoutException as exc:
+            async with anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key) as client:
+                async with client.messages.stream(
+                    model=settings.anthropic_model,
+                    max_tokens=1800,
+                    messages=[{"role": "user", "content": prompt}],
+                ) as stream:
+                    async for text in stream.text_stream:
+                        yield text
+        except anthropic.APITimeoutError as exc:
             raise RuntimeError("Cloud provider timed out while generating a response") from exc
-        except httpx.HTTPStatusError as exc:
-            detail = exc.response.text[:500].replace(settings.anthropic_api_key, "[REDACTED]")
-            raise RuntimeError(f"Anthropic API error ({exc.response.status_code}): {detail}") from exc
-        except httpx.HTTPError as exc:
-            raise RuntimeError(f"Cloud provider request failed: {type(exc).__name__}") from exc
+        except anthropic.APIStatusError as exc:
+            raise RuntimeError(f"Anthropic API error ({exc.status_code}): {exc.message}") from exc
+        except anthropic.APIConnectionError as exc:
+            raise RuntimeError("Cloud provider connection failed") from exc
+        except anthropic.APIError as exc:
+            raise RuntimeError(f"Anthropic API error: {exc.message}") from exc
