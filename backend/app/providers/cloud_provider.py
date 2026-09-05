@@ -23,5 +23,8 @@ class CloudProvider(LLMProvider):
                                 yield data["delta"].get("text", "")
         except httpx.TimeoutException as exc:
             raise RuntimeError("Cloud provider timed out while generating a response") from exc
+        except httpx.HTTPStatusError as exc:
+            detail = exc.response.text[:500].replace(settings.anthropic_api_key, "[REDACTED]")
+            raise RuntimeError(f"Anthropic API error ({exc.response.status_code}): {detail}") from exc
         except httpx.HTTPError as exc:
-            raise RuntimeError("Cloud provider request failed") from exc
+            raise RuntimeError(f"Cloud provider request failed: {type(exc).__name__}") from exc
