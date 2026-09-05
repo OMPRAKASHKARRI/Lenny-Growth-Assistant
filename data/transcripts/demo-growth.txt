@@ -1,0 +1,4 @@
+Episode: Demo Growth Conversation
+Guest: Product Growth Practitioner
+
+The strongest growth teams start by understanding the repeated user behavior that creates value. A growth loop is a system where one user's action creates an input for another user. Before adding channels, teams should define the activation moment and measure whether users reach it. Talk to users regularly, write down the language they use, and test one clear hypothesis at a time. Retention is often a better signal than acquisition because it tells you whether the product is becoming a habit. Good experiments have a decision rule before they launch and a small enough scope to teach the team quickly.
